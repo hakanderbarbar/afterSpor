@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding_screen.dart'; // Importiere das OnboardingScreen
-import 'VoiceRoomScreen.dart';
 
 class ChatRoomSelectionScreen extends StatefulWidget {
   const ChatRoomSelectionScreen({super.key});
@@ -198,22 +197,6 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
                     trailing: Text(
                       '${room['currentUsers']}/${room['maxUsers']}',
                     ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => VoiceRoomScreen(
-                                roomName: room['name']!,
-                                maxUsers: room['maxUsers'],
-                                users: [
-                                  'User1',
-                                  'User2',
-                                ], // Beispielhafte Benutzerliste
-                              ),
-                        ),
-                      );
-                    },
                   ),
                 );
               },

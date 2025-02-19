@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993612773473",
+    "project_id": "afterspor",
+    "storage_bucket": "afterspor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993612773473:android:8231e15921ff799f8f1220",
+        "android_client_info": {
+          "package_name": "com.example.after_spor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRTvOYc5Kz_2PUKKu121NBhiwOMuCl_Qo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

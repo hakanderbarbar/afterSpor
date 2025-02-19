@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'chatroom_selection_screen.dart';
@@ -9,7 +11,15 @@ class OnboardingScreen extends StatelessWidget {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('favorite_team', team);
 
-    // Wechsle direkt zur Chatroom-Seite
+    // Lieblingsmannschaft in Firestore speichern
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'favorite_team': team,
+      });
+    }
+
+    // Wechsle zur Chatroom-Seite
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const ChatRoomSelectionScreen()),
@@ -26,7 +36,7 @@ class OnboardingScreen extends StatelessWidget {
             onTap: () => _saveTeamAndProceed(context, 'Galatasaray'),
             child: Container(
               width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.45, // 45% der Bildschirmhöhe
+              height: MediaQuery.of(context).size.height * 0.45,
               color: Colors.red,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

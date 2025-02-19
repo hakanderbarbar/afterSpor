@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chatroom_selection_screen.dart'; // Chatroom-Seite importieren
+import 'UsernameScreen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -30,22 +31,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _register() async {
-    try {
-      await _auth.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => ChatRoomSelectionScreen()),
-      );
-    } catch (e) {
-      setState(() {
-        errorMessage = "Registrierung fehlgeschlagen: ${e.toString()}";
-      });
-    }
+Future<void> _register() async {
+  try {
+    await _auth.createUserWithEmailAndPassword(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+    );
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => UsernameScreen()),
+    );
+  } catch (e) {
+    setState(() {
+      errorMessage = "Registrierung fehlgeschlagen: ${e.toString()}";
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

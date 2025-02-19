@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Soccer Chat',
+      title: 'afterSpor',
       debugShowCheckedModeBanner: false,
       home: LoginScreen(), // Login-Seite als Startseite
     );

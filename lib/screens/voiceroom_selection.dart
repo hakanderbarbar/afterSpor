@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'teamselection.dart';
+import 'VoiceRoomScreen.dart';
 
 class ChatRoomSelectionScreen extends StatefulWidget {
   const ChatRoomSelectionScreen({super.key});
@@ -135,18 +136,6 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Chatrooms für $favoriteTeam'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-              );
-            },
-            tooltip: 'Zurück zum Onboarding',
-          ),
-        ],
       ),
       body: StreamBuilder(
         stream: _firestore.collection('chatrooms').where('team', isEqualTo: favoriteTeam).snapshots(),
@@ -167,6 +156,18 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
                   title: Text(room['name']),
                   subtitle: Text('Admin: ${room['admin']}'),
                   trailing: Text('${room['currentUsers']}/${room['maxUsers']}'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VoiceRoomScreen(
+                          roomId: room.id,
+                          roomName: room['name'],
+                          maxUsers: room['maxUsers'],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },

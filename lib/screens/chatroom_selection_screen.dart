@@ -1,66 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'onboarding_screen.dart'; // Importiere das OnboardingScreen
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'teamselection.dart';
 
 class ChatRoomSelectionScreen extends StatefulWidget {
   const ChatRoomSelectionScreen({super.key});
 
   @override
-  _ChatRoomSelectionScreenState createState() =>
-      _ChatRoomSelectionScreenState();
+  _ChatRoomSelectionScreenState createState() => _ChatRoomSelectionScreenState();
 }
 
 class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
   String? favoriteTeam;
-  List<Map<String, dynamic>> chatRooms = [
-    {
-      'name': 'Gala Aslanlar',
-      'team': 'Galatasaray',
-      'admin': 'User5',
-      'currentUsers': 4,
-      'maxUsers': 4,
-    },
-    {
-      'name': 'Fenerbahçe Söhbet',
-      'team': 'Fenerbahçe',
-      'admin': 'User6',
-      'currentUsers': 2,
-      'maxUsers': 6,
-    },
-  ];
-
-  List<Map<String, dynamic>> filteredChatRooms = [];
-  String? currentUser; // Der aktuelle Benutzer, der die App verwendet
-  bool isAdmin = false; // Gibt an, ob der Benutzer bereits Admin ist
+  String? currentUserId;
+  String? currentUsername;
+  bool isAdmin = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _loadFavoriteTeam();
-    _loadCurrentUser();
-    _checkAdminStatus();
+    _loadUserData();
   }
 
-  Future<void> _loadFavoriteTeam() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      favoriteTeam = prefs.getString('favorite_team');
-      filteredChatRooms =
-          chatRooms.where((room) => room['team'] == favoriteTeam).toList();
-    });
-  }
-
-  Future<void> _loadCurrentUser() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      currentUser = prefs.getString('current_user');
-    });
+  Future<void> _loadUserData() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        currentUserId = user.uid;
+      });
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          favoriteTeam = userDoc['favorite_team'];
+          currentUsername = userDoc['username'];
+        });
+      }
+      _checkAdminStatus();
+    }
   }
 
   Future<void> _checkAdminStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    QuerySnapshot roomSnapshot = await _firestore.collection('chatrooms')
+        .where('adminId', isEqualTo: currentUserId)
+        .get();
     setState(() {
-      isAdmin = prefs.getBool('is_admin') ?? false;
+      isAdmin = roomSnapshot.docs.isNotEmpty;
     });
   }
 
@@ -72,28 +58,24 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
       return;
     }
 
-    TextEditingController _nameController = TextEditingController();
-    TextEditingController _maxUsersController = TextEditingController();
+    TextEditingController nameController = TextEditingController();
+    TextEditingController maxUsersController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Neuen Chatraum erstellen'),
+          title: const Text('Neuen VoiceRoom erstellen'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: 'Raumnamen eingeben',
-                ),
+                controller: nameController,
+                decoration: const InputDecoration(hintText: 'Raumnamen eingeben'),
               ),
               TextField(
-                controller: _maxUsersController,
-                decoration: const InputDecoration(
-                  hintText: 'Maximale Benutzeranzahl',
-                ),
+                controller: maxUsersController,
+                decoration: const InputDecoration(hintText: 'Max. Benutzeranzahl'),
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -107,27 +89,16 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
             ),
             TextButton(
               onPressed: () async {
-                if (_nameController.text.isNotEmpty &&
-                    _maxUsersController.text.isNotEmpty) {
-                  SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  await prefs.setBool('is_admin', true);
-
+                if (nameController.text.isNotEmpty && maxUsersController.text.isNotEmpty) {
+                  await _firestore.collection('chatrooms').add({
+                    'name': nameController.text,
+                    'team': favoriteTeam,
+                    'admin': currentUsername,
+                    'adminId': currentUserId,
+                    'currentUsers': 1,
+                    'maxUsers': int.parse(maxUsersController.text),
+                  });
                   setState(() {
-                    chatRooms.add({
-                      'name': _nameController.text,
-                      'team': favoriteTeam!,
-                      'admin': currentUser,
-                      'currentUsers': 1, // Der Ersteller ist der erste Benutzer
-                      'maxUsers': int.parse(_maxUsersController.text),
-                    });
-                    filteredChatRooms.add({
-                      'name': _nameController.text,
-                      'team': favoriteTeam!,
-                      'admin': currentUser,
-                      'currentUsers': 1,
-                      'maxUsers': int.parse(_maxUsersController.text),
-                    });
                     isAdmin = true;
                   });
                   Navigator.of(context).pop();
@@ -141,28 +112,21 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
     );
   }
 
-  Future<void> _goBackToOnboarding() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('favorite_team');
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-    );
-  }
-
   void _leaveRoom() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_admin', false);
+    QuerySnapshot roomSnapshot = await _firestore.collection('chatrooms')
+        .where('adminId', isEqualTo: currentUserId)
+        .get();
+
+    for (var doc in roomSnapshot.docs) {
+      await doc.reference.delete();
+    }
 
     setState(() {
       isAdmin = false;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Du hast den Raum verlassen und bist nicht mehr Admin.'),
-      ),
+      const SnackBar(content: Text('Du hast den Raum verlassen und bist nicht mehr Admin.')),
     );
   }
 
@@ -174,52 +138,55 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: _goBackToOnboarding,
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+              );
+            },
             tooltip: 'Zurück zum Onboarding',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredChatRooms.length,
-              itemBuilder: (context, index) {
-                final room = filteredChatRooms[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: ListTile(
-                    title: Text(room['name']!),
-                    subtitle: Text('Admin: ${room['admin']}'),
-                    trailing: Text(
-                      '${room['currentUsers']}/${room['maxUsers']}',
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: FloatingActionButton(
-              onPressed: isAdmin ? null : _createNewChatRoom,
-              child: const Icon(Icons.add, size: 40),
-              tooltip: 'Neuen Chatraum erstellen',
-            ),
-          ),
-          if (isAdmin)
-            Padding(
+      body: StreamBuilder(
+        stream: _firestore.collection('chatrooms').where('team', isEqualTo: favoriteTeam).snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          var chatRooms = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: chatRooms.length,
+            itemBuilder: (context, index) {
+              var room = chatRooms[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: ListTile(
+                  title: Text(room['name']),
+                  subtitle: Text('Admin: ${room['admin']}'),
+                  trailing: Text('${room['currentUsers']}/${room['maxUsers']}'),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: isAdmin ? null : _createNewChatRoom,
+        tooltip: 'Neuen VoiceRoom erstellen',
+        child: const Icon(Icons.add, size: 40),
+      ),
+      bottomNavigationBar: isAdmin
+          ? Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
                 onPressed: _leaveRoom,
                 child: const Text('Raum verlassen'),
               ),
-            ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 }

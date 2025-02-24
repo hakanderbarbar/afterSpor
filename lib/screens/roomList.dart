@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'voiceRoom.dart';
+import 'VoiceRoomScreen.dart';
 
 class ChatRoomSelectionScreen extends StatefulWidget {
   const ChatRoomSelectionScreen({super.key});
@@ -198,7 +198,7 @@ Future<bool> _joinRoom(String roomId) async {
                   trailing: Text('${room['currentUsers']}/${room['maxUsers']}'),
 onTap: () async {
   bool joined = await _joinRoom(room.id);
-  if (joined) {  // Nur navigieren, wenn erfolgreich beigetreten
+  if (joined) {  
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -206,12 +206,13 @@ onTap: () async {
           roomId: room.id,
           roomName: room['name'],
           maxUsers: room['maxUsers'],
+          isAdmin: room['admin'] == _auth.currentUser!.uid, // Prüft, ob der aktuelle User Admin ist
         ),
       ),
     );
   }
-}
-,
+},
+
                 ),
               );
             },

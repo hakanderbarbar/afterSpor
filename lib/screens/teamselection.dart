@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'voiceroom_selection.dart';
+import 'roomList.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});

@@ -84,18 +84,16 @@ class _VoiceRoomScreenState extends State<VoiceRoomScreen> {
 
 Future<void> _leaveRoom() async {
   if (currentUsername == null) return;
-  if (widget.isAdmin) return; // 👈 Admin bleibt in der User-Liste!
-
 
   DocumentReference roomRef = _firestore.collection('chatrooms').doc(widget.roomId);
 
   await roomRef.update({
     'users': FieldValue.arrayRemove([currentUsername]),
-    'currentUsers': FieldValue.increment(-1), // Aktualisiert die Anzahl
+    'currentUsers': FieldValue.increment(-1), 
   });
 
   if (mounted) {
-    Navigator.pop(context); // User zurück zur roomList bringen
+    Navigator.pop(context); 
   }
 }
 

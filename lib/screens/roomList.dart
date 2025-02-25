@@ -7,7 +7,8 @@ class ChatRoomSelectionScreen extends StatefulWidget {
   const ChatRoomSelectionScreen({super.key});
 
   @override
-  _ChatRoomSelectionScreenState createState() => _ChatRoomSelectionScreenState();
+  _ChatRoomSelectionScreenState createState() =>
+      _ChatRoomSelectionScreenState();
 }
 
 class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
@@ -30,7 +31,8 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
       setState(() {
         currentUserId = user.uid;
       });
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         setState(() {
           favoriteTeam = userDoc['favorite_team'];
@@ -114,42 +116,38 @@ class _ChatRoomSelectionScreenState extends State<ChatRoomSelectionScreen> {
     );
   }
 
-Future<bool> _joinRoom(String roomId) async {
-  User? user = _auth.currentUser;
-  if (user == null) return false;
+  Future<bool> _joinRoom(String roomId) async {
+    User? user = _auth.currentUser;
+    if (user == null) return false;
 
-  DocumentReference roomRef = _firestore.collection('chatrooms').doc(roomId);
+    DocumentReference roomRef = _firestore.collection('chatrooms').doc(roomId);
 
-  try {
-    return await _firestore.runTransaction((transaction) async {
-      DocumentSnapshot roomSnapshot = await transaction.get(roomRef);
-      if (!roomSnapshot.exists) return false;
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        DocumentSnapshot roomSnapshot = await transaction.get(roomRef);
+        if (!roomSnapshot.exists) return false;
 
-      List<dynamic> userList = List.from(roomSnapshot.get('users') ?? []);
-      int currentUsers = roomSnapshot.get('currentUsers');
-      int maxUsers = roomSnapshot.get('maxUsers');
+        List<dynamic> userList = List.from(roomSnapshot.get('users') ?? []);
+        int currentUsers = roomSnapshot.get('currentUsers');
+        int maxUsers = roomSnapshot.get('maxUsers');
 
-      if (currentUsers >= maxUsers) {
-        return false; // ❌ Raum ist voll, Abbruch!
-      }
+        if (currentUsers >= maxUsers) {
+          return false; // ❌ Raum ist voll, Abbruch!
+        }
 
-      if (!userList.contains(currentUsername)) {
-        userList.add(currentUsername);
-        transaction.update(roomRef, {
-          'users': userList,
-          'currentUsers': userList.length,
-        });
-      }
-      return true; // ✅ Erfolgreich beigetreten!
-    });
-  } catch (error) {
-    return false;
+        if (!userList.contains(currentUsername)) {
+          userList.add(currentUsername);
+          transaction.update(roomRef, {
+            'users': userList,
+            'currentUsers': userList.length,
+          });
+        }
+        return true; // ✅ Erfolgreich beigetreten!
+      });
+    } catch (error) {
+      return false;
+    }
   }
-}
-
-
-
-
 
   void _leaveRoom() async {
     QuerySnapshot roomSnapshot = await _firestore
@@ -171,68 +169,97 @@ Future<bool> _joinRoom(String roomId) async {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Chatrooms für $favoriteTeam'),
-      ),
-      body: StreamBuilder(
-        stream: _firestore.collection('chatrooms').where('team', isEqualTo: favoriteTeam).snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+Widget build(BuildContext context) {
+  // Setzt das Hintergrundbild je nach Lieblings-Team
+  String backgroundImage =
+      favoriteTeam == 'Galatasaray' ? 'assets/galatasaray.png' : 'assets/fenerbahce.png';
 
-          var chatRooms = snapshot.data!.docs;
-
-          return ListView.builder(
-            itemCount: chatRooms.length,
-            itemBuilder: (context, index) {
-              var room = chatRooms[index];
-
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  title: Text(room['name']),
-                  subtitle: Text('Admin: ${room['admin']}'),
-                  trailing: Text('${room['currentUsers']}/${room['maxUsers']}'),
-onTap: () async {
-  bool joined = await _joinRoom(room.id);
-  if (joined) {  
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VoiceRoomScreen(
-          roomId: room.id,
-          roomName: room['name'],
-          maxUsers: room['maxUsers'],
-          isAdmin: room['admin'] == _auth.currentUser!.uid, // Prüft, ob der aktuelle User Admin ist
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('Chatrooms für $favoriteTeam'),
+      backgroundColor: favoriteTeam == 'Galatasaray' ? Colors.red : Colors.blue,
+    ),
+    body: Stack(
+      children: [
+        // Hintergrundbild bleibt konstant
+        Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(backgroundImage),
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-      ),
-    );
-  }
-},
+        // Der StreamBuilder ist nun über dem Hintergrundbild
+        StreamBuilder(
+          stream: _firestore.collection('chatrooms').where('team', isEqualTo: favoriteTeam).snapshots(),
+          builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: isAdmin ? null : _createNewChatRoom,
-        tooltip: 'Neuen VoiceRoom erstellen',
-        child: const Icon(Icons.add, size: 40),
-      ),
-      bottomNavigationBar: isAdmin
-          ? Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: _leaveRoom,
-                child: const Text('Raum verlassen'),
+            var chatRooms = snapshot.data!.docs;
+
+            return ListView.builder(
+              itemCount: chatRooms.length,
+              itemBuilder: (context, index) {
+                var room = chatRooms[index];
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shadowColor: Colors.black45,
+                  elevation: 5,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                    title: Text(
+                      room['name'],
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    subtitle: Text('Admin: ${room['admin']}'),
+                    trailing: Text('${room['currentUsers']}/${room['maxUsers']}'),
+                    onTap: () async {
+                      bool joined = await _joinRoom(room.id);
+                      if (joined) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => VoiceRoomScreen(
+                              roomId: room.id,
+                              roomName: room['name'],
+                              maxUsers: room['maxUsers'],
+                              isAdmin: room['admin'] == _auth.currentUser!.uid, // Prüft, ob der aktuelle User Admin ist
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: isAdmin ? null : _createNewChatRoom,
+      tooltip: 'Neuen VoiceRoom erstellen',
+      backgroundColor: favoriteTeam == 'Galatasaray' ? Colors.red : Colors.blue,
+      child: const Icon(Icons.add, size: 40),
+    ),
+    bottomNavigationBar: isAdmin
+        ? Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: _leaveRoom,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: favoriteTeam == 'Galatasaray' ? Colors.red : Colors.blue,
               ),
-            )
-          : null,
-    );
-  }
+              child: const Text('Raum verlassen'),
+            ),
+          )
+        : null,
+  );
+}
 }

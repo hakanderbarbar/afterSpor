@@ -14,7 +14,6 @@ Basically a possibility for soccer fans to find their own and discuss questionab
 
 It could also be an opportunity for the fans to mock the fan base of the rivals (not my main intention but would be funny to see).
 
-For example: Galatasaray beats Fenerbahce. The Galatasaray fan could perhaps join the chat room of Fenerbahce to just to sing the main anthem and undermine their loss. :-)
 
 ## Getting Started
 
